@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Contábil Pro - Cloud V7</title>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // AS TUAS CHAVES REAIS DO FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBlFT-G4T6aC3QNPPsnMEJ7Lb16jW0v4FU",
+            authDomain: "gestaopro-9fac3.firebaseapp.com",
+            projectId: "gestaopro-9fac3",
+            storageBucket: "gestaopro-9fac3.firebasestorage.app",
+            messagingSenderId: "880162078551",
+            appId: "1:880162078551:web:eb5ec03e32b41918ab8812",
+            measurementId: "G-Y6PV08VE87",
+            // Linha importante adicionada abaixo:
+            databaseURL: "https://gestaopro-9fac3-default-rtdb.firebaseio.com" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.salvarNoCloud = (caminho, dado) => push(ref(db, caminho), dado);
+
+        onValue(ref(db, '/'), (snapshot) => {
+            window.dadosGlobais = snapshot.val() || { usuarios: {}, tarefas: {} };
+            renderizarTudo();
+        });
+    </script>
+
+    <style>
+        :root { --primary: #002D62; --danger: #dc3545; --success: #28a745; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 0; }
+        #tela-login { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .container { max-width: 1400px; margin: 20px auto; background: white; padding: 25px; border-radius: 12px; display: none; }
+        .header { background: #333; color: white; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .card { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn-primary { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f8f9fa; padding: 12px; border-bottom: 2px solid #ddd; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; text-align: left; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 11px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="tela-login">
+        <div class="login-box">
+            <h2 style="color:var(--primary)">Gestão Pro Login</h2>
+            <p style="font-size: 12px;">Use <b>admin@admin.com</b> / <b>admin123</b></p>
+            <input type="email" id="l-email" placeholder="E-mail">
+            <input type="password" id="l-senha" placeholder="Senha">
+            <button class="btn-primary" onclick="tentarLogin()">Aceder</button>
+            <p id="msg-erro" style="color:red; font-size:12px;"></p>
+        </div>
+    </div>
+
+    <div id="app" class="container">
+        <div class="header">
+            <span id="user-display">Bem-vindo</span>
+            <button onclick="location.reload()" style="width: auto; background: none; color: white; border: 1px solid white;">Sair</button>
+        </div>
+
+        <div class="grid">
+            <aside>
+                <div class="card">
+                    <h3>👥 Nova Equipa/Cliente</h3>
+                    <input type="text" id="nu-nome" placeholder="Nome">
+                    <input type="email" id="nu-email" placeholder="E-mail">
+                    <input type="password" id="nu-senha" placeholder="Senha">
+                    <select id="nu-tipo">
+                        <option value="EQUIPA">Equipa</option>
+                        <option value="GERENTE">Gerente</option>
+                        <option value="CLIENTE">Cliente</option>
+                    </select>
+                    <button class="btn-primary" onclick="cadastrarUsuario()">Criar Acesso Cloud</button>
+                </div>
+                <div class="card">
+                    <h3>📅 Nova Tarefa</h3>
+                    <input type="text" id="t-nome" placeholder="Tarefa">
+                    <input type="date" id="t-data">
+                    <select id="t-resp"></select>
+                    <button class="btn-primary" style="background:var(--success)" onclick="programarTarefa()">Agendar na Nuvem</button>
+                </div>
+            </aside>
+            <main>
+                <div class="card">
+                    <h3>Monitorização em Tempo Real</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Prazo</th><th>Tarefa</th><th>Responsável</th><th>Status</th></tr>
+                        </thead>
+                        <tbody id="lista-atividades"></tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script>
+    let usuarioLogado = null;
+
+    function tentarLogin() {
+        const email = document.getElementById('l-email').value;
+        const senha = document.getElementById('l-senha').value;
+        if(email === "admin@admin.com" && senha === "admin123") {
+            usuarioLogado = { nome: "Admin", tipo: "ADMIN", email: email };
+            document.getElementById('tela-login').style.display = 'none';
+            document.getElementById('app').style.display = 'block';
+            return;
+        }
+        const users = window.dadosGlobais.usuarios;
+        for (let id in users) {
+            if (users[id].email === email && users[id].senha === senha) {
+                usuarioLogado = users[id];
+                document.getElementById('tela-login').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                return;
+            }
+        }
+        document.getElementById('msg-erro').innerText = "Erro de login.";
+    }
+
+    function cadastrarUsuario() {
+        const novo = {
+            nome: document.getElementById('nu-nome').value,
+            email: document.getElementById('nu-email').value,
+            senha: document.getElementById('nu-senha').value,
+            tipo: document.getElementById('nu-tipo').value
+        };
+        window.salvarNoCloud('usuarios/', novo);
+        alert("Criado com sucesso!");
+    }
+
+    function programarTarefa() {
+        const t = {
+            nome: document.getElementById('t-nome').value,
+            data: document.getElementById('t-data').value,
+            resp: document.getElementById('t-resp').value,
+            status: "Pendente"
+        };
+        window.salvarNoCloud('tarefas/', t);
+        alert("Agendado na Nuvem!");
+    }
+
+    function renderizarTudo() {
+        const sel = document.getElementById('t-resp');
+        sel.innerHTML = "";
+        const users = window.dadosGlobais.usuarios;
+        for(let id in users) sel.innerHTML += `<option>${users[id].nome}</option>`;
+
+        const lista = document.getElementById('lista-atividades');
+        lista.innerHTML = "";
+        const tarefas = window.dadosGlobais.tarefas;
+        for(let id in tarefas) {
+            const t = tarefas[id];
+            lista.innerHTML += `<tr><td>${t.data}</td><td>${t.nome}</td><td>${t.resp}</td><td><span class="badge" style="background:green">Ativo</span></td></tr>`;
+        }
+    }
+</script>
+</body>
+</html>
