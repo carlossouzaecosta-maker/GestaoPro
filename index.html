@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Pro V10 - ERP Cloud</title>
+    <title>Gestão Pro V12 - ERP Cloud</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -38,32 +38,29 @@
     <style>
         :root { --primary: #002D62; --danger: #dc3545; --success: #28a745; --warning: #ffc107; --bg: #f0f2f5; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
         .sidebar { width: 260px; background: var(--primary); color: white; display: flex; flex-direction: column; padding: 20px; }
         .sidebar h2 { font-size: 1.2rem; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
         .nav-link { padding: 12px 15px; color: #cbd5e0; text-decoration: none; border-radius: 8px; margin-bottom: 5px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-
         .main-content { flex: 1; overflow-y: auto; padding: 30px; }
         .module-card { display: none; }
         .module-card.active { display: block; animation: fadeIn 0.4s; }
-
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .grid-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        
+        .grid-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
         label { font-size: 12px; font-weight: bold; color: #666; display: block; margin-bottom: 2px; }
-        input, select, button, textarea { padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
+        input, select, button, textarea { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box; }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #eee; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; }
+        th { background: #f8f9fa; padding: 10px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
+        .status-atrasada { background: var(--danger); }
+        .status-pendente { background: var(--warning); color: black; }
+        .status-concluido { background: var(--success); }
+        .status-problema { background: #6f42c1; }
+        .hidden { display: none !important; }
         #tela-login { position: fixed; inset: 0; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 2000; }
         .login-box { background: white; padding: 40px; border-radius: 12px; width: 350px; text-align: center; }
-
-        .hidden { display: none; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -75,13 +72,13 @@
         <input type="email" id="l-email" placeholder="E-mail">
         <input type="password" id="l-senha" placeholder="Senha">
         <button onclick="tentarLogin()">Entrar</button>
-        <p id="msg-erro" style="color:red; font-size:12px; margin-top:10px;"></p>
     </div>
 </div>
 
 <div class="sidebar">
-    <h2>Gestão Pro</h2>
+    <h2>Gestão Pro V12</h2>
     <div class="nav-link active" onclick="nav('mod-tarefas')">🕒 Controle de Tarefas</div>
+    <div class="nav-link" onclick="nav('mod-concluidas')">✅ Atividades Concluídas</div>
     <div class="nav-link" onclick="nav('mod-solicitacoes')">📄 Solicitações (Portal)</div>
     <div class="nav-link" onclick="nav('mod-dashboard')">📊 Dashboard</div>
     <div class="nav-link" onclick="nav('mod-capacidade')">⚖️ Capacidade Equipe</div>
@@ -93,54 +90,50 @@
     
     <div id="mod-tarefas" class="module-card active">
         <div class="card">
-            <h3>Programar Atividade</h3>
+            <h3 id="titulo-form">Programar Atividade</h3>
             <div class="grid-forms">
+                <input type="hidden" id="t-id">
                 <div><label>Tarefa</label><input type="text" id="t-nome"></div>
                 <div><label>Data</label><input type="date" id="t-data"></div>
+                <div><label>Recorrência</label>
+                    <select id="t-recorrencia">
+                        <option value="nenhuma">Nenhuma</option>
+                        <option value="diaria">Diária (30 dias)</option>
+                        <option value="semanal">Semanal (8 semanas)</option>
+                        <option value="quinzenal">Quinzenal (4 ocorrências)</option>
+                    </select>
+                </div>
                 <div><label>Horas</label><input type="number" id="t-horas"></div>
                 <div><label>Cliente</label><select id="t-cliente"></select></div>
                 <div><label>Responsável</label><select id="t-resp"></select></div>
             </div>
-            <button onclick="salvarTarefa()" style="margin-top:15px; width:200px">Salvar</button>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button id="btn-salvar" onclick="processarTarefa()" style="width:200px">Salvar</button>
+                <button id="btn-cancelar" onclick="limparFormTarefa()" class="hidden" style="background:#666; width:150px">Cancelar Edição</button>
+            </div>
         </div>
+
         <div class="card">
-            <table id="tbl-tarefas">
+            <h3>Monitoramento</h3>
+            <div class="grid-forms" style="margin-bottom:15px;">
+                <input type="text" placeholder="Filtrar Prazo..." onkeyup="filtrar(0, this.value)">
+                <input type="text" placeholder="Filtrar Cliente..." onkeyup="filtrar(1, this.value)">
+                <input type="text" placeholder="Filtrar Tarefa..." onkeyup="filtrar(2, this.value)">
+                <input type="text" placeholder="Filtrar Resp..." onkeyup="filtrar(3, this.value)">
+            </div>
+            <table>
                 <thead><tr><th>Prazo</th><th>Cliente</th><th>Tarefa</th><th>Responsável</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="lista-tarefas"></tbody>
             </table>
         </div>
     </div>
 
-    <div id="mod-solicitacoes" class="module-card">
+    <div id="mod-concluidas" class="module-card">
         <div class="card">
-            <h3>Nova Solicitação</h3>
-            <div class="grid-forms">
-                <input type="text" id="s-topico" placeholder="Tópico">
-                <input type="text" id="s-titulo" placeholder="Título">
-                <input type="date" id="s-venc">
-                <select id="s-cliente"></select>
-            </div>
-            <textarea id="s-desc" placeholder="Descrição"></textarea>
-            <button onclick="salvarSolicitacao()" style="width:200px">Enviar</button>
-        </div>
-        <div class="card">
+            <h3>Histórico de Entregas Concluídas</h3>
             <table>
-                <thead><tr><th>Cliente</th><th>Título</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
-                <tbody id="lista-solicitacoes"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="mod-dashboard" class="module-card">
-        <div class="card"><h3>Dashboard em Desenvolvimento</h3></div>
-    </div>
-
-    <div id="mod-capacidade" class="module-card">
-        <div class="card">
-            <h3>Disponibilidade (8h Diárias)</h3>
-            <table>
-                <thead><tr><th>Nome</th><th>Data</th><th>Horas</th><th>Status</th></tr></thead>
-                <tbody id="lista-capacidade"></tbody>
+                <thead><tr><th>Data</th><th>Cliente</th><th>Tarefa</th><th>Responsável</th><th>Status</th></tr></thead>
+                <tbody id="lista-concluidas"></tbody>
             </table>
         </div>
     </div>
@@ -150,62 +143,33 @@
             <h3>Gestão de Usuários</h3>
             <div style="margin-bottom: 15px;">
                 <label>Tipo de Cadastro:</label>
-                <select id="nu-flegue" onchange="toggleCamposCadastro()">
+                <select id="nu-flegue" onchange="toggleForm()">
                     <option value="INTERNO">Equipe Interna</option>
                     <option value="CLIENTE">Cliente</option>
                 </select>
             </div>
-
             <div id="campos-interno" class="grid-forms">
-                <div><label>Nome</label><input type="text" id="nu-nome-int"></div>
-                <div><label>E-mail (Usuário)</label><input type="email" id="nu-email-int"></div>
-                <div><label>Senha</label><input type="password" id="nu-senha-int"></div>
-                <div><label>Classificação</label>
-                    <select id="nu-classificacao">
-                        <option value="ADM">ADM</option>
-                        <option value="GERENTE">Gerente</option>
-                        <option value="LIDER">Líder</option>
-                        <option value="EQUIPE">Equipe</option>
-                    </select>
-                </div>
-                <div><label>Setor</label>
-                    <select id="nu-setor">
-                        <option value="Gestão de ativos">Gestão de ativos</option>
-                        <option value="Serviços Corporativos">Serviços Corporativos</option>
-                        <option value="Projeto de Capital">Projeto de Capital</option>
-                        <option value="Administrativo">Administrativo</option>
-                        <option value="Recursos Humanos">Recursos Humanos</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="Qualidade">Qualidade</option>
-                    </select>
-                </div>
+                <input type="text" id="nu-nome-int" placeholder="Nome">
+                <input type="email" id="nu-email-int" placeholder="E-mail">
+                <input type="password" id="nu-senha-int" placeholder="Senha">
+                <select id="nu-classificacao"><option value="ADM">ADM</option><option value="GERENTE">Gerente</option><option value="LIDER">Líder</option><option value="EQUIPE">Equipe</option></select>
             </div>
-
             <div id="campos-cliente" class="grid-forms hidden">
-                <div><label>Razão Social</label><input type="text" id="nu-razao"></div>
-                <div><label>Apelido (Nome Reduzido)</label><input type="text" id="nu-apelido"></div>
-                <div><label>CNPJ (Opcional)</label><input type="text" id="nu-cnpj"></div>
-                <div><label>Endereço</label><input type="text" id="nu-endereco"></div>
-                <div><label>Telefone</label><input type="text" id="nu-telefone"></div>
-                <div style="grid-column: 1 / -1; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
-                    <strong>Pessoa Indicada (Acesso)</strong>
-                </div>
-                <div><label>Nome do Contato</label><input type="text" id="nu-nome-cli"></div>
-                <div><label>E-mail (Usuário)</label><input type="email" id="nu-email-cli"></div>
-                <div><label>Senha</label><input type="password" id="nu-senha-cli"></div>
+                <input type="text" id="nu-razao" placeholder="Razão Social">
+                <input type="text" id="nu-apelido" placeholder="Apelido">
+                <input type="text" id="nu-email-cli" placeholder="E-mail Acesso">
+                <input type="password" id="nu-senha-cli" placeholder="Senha">
             </div>
-
             <button onclick="salvarUsuario()" style="margin-top:15px; width:200px">Salvar Cadastro</button>
         </div>
-
         <div class="card">
-            <h3>Lista de Cadastros</h3>
-            <table>
-                <thead><tr><th>Tipo</th><th>Nome/Apelido</th><th>E-mail</th><th>Classificação/Setor</th><th>Ações</th></tr></thead>
-                <tbody id="lista-usuarios"></tbody>
-            </table>
+            <table><thead><tr><th>Tipo</th><th>Nome</th><th>E-mail</th><th>Ação</th></tr></thead><tbody id="lista-usuarios"></tbody></table>
         </div>
     </div>
+
+    <div id="mod-solicitacoes" class="module-card"><div class="card"><h3>Em Breve</h3></div></div>
+    <div id="mod-dashboard" class="module-card"><div class="card"><h3>Em Breve</h3></div></div>
+    <div id="mod-capacidade" class="module-card"><div class="card"><h3>Em Breve</h3></div></div>
 
 </div>
 
@@ -219,7 +183,7 @@
         event.currentTarget.classList.add('active');
     }
 
-    function toggleCamposCadastro() {
+    function toggleForm() {
         const tipo = document.getElementById('nu-flegue').value;
         document.getElementById('campos-interno').classList.toggle('hidden', tipo !== 'INTERNO');
         document.getElementById('campos-cliente').classList.toggle('hidden', tipo !== 'CLIENTE');
@@ -233,10 +197,10 @@
             document.getElementById('tela-login').style.display = 'none';
             return;
         }
-        const users = window.dadosGlobais.usuarios;
-        for(let id in users) {
-            if(users[id].email === e && users[id].senha === s) {
-                userLogado = users[id];
+        const u = window.dadosGlobais.usuarios;
+        for(let id in u) {
+            if(u[id].email === e && u[id].senha === s) {
+                userLogado = u[id];
                 document.getElementById('tela-login').style.display = 'none';
                 return;
             }
@@ -244,114 +208,24 @@
         alert("Acesso Negado.");
     }
 
-    function renderizarApp() {
-        const d = window.dadosGlobais;
-        atualizarSelects(d.usuarios);
-        renderizarTarefas(d.tarefas);
-        renderizarSolicitacoes(d.solicitacoes);
-        renderizarUsuarios(d.usuarios);
-        renderizarCapacidade(d.tarefas);
+    // UTILITÁRIOS
+    function formatarDataBR(data) {
+        if(!data) return "";
+        const [a, m, d] = data.split('-');
+        return `${d}/${m}/${a}`;
     }
 
-    function atualizarSelects(users) {
-        const cliSels = document.querySelectorAll('#t-cliente, #s-cliente');
-        const resSel = document.getElementById('t-resp');
-        cliSels.forEach(s => s.innerHTML = '<option value="">Selecionar Cliente...</option>');
-        resSel.innerHTML = '<option value="">Responsável...</option>';
-
-        for(let id in users) {
-            const u = users[id];
-            if(u.flegue === 'CLIENTE') {
-                cliSels.forEach(s => s.innerHTML += `<option value="${u.apelido}">${u.apelido}</option>`);
-            } else {
-                resSel.innerHTML += `<option value="${u.nome}">${u.nome}</option>`;
-            }
+    function filtrar(col, val) {
+        const rows = document.getElementById('lista-tarefas').rows;
+        for (let r of rows) {
+            const txt = r.cells[col].innerText.toLowerCase();
+            r.style.display = txt.includes(val.toLowerCase()) ? "" : "none";
         }
     }
 
-    function renderizarTarefas(tarefas) {
-        const lista = document.getElementById('lista-tarefas');
-        lista.innerHTML = "";
-        for(let id in tarefas) {
-            const t = tarefas[id];
-            lista.innerHTML += `<tr><td>${t.data}</td><td>${t.cliente}</td><td>${t.nome}</td><td>${t.resp}</td>
-                <td><span class="badge" style="background:var(--warning)">${t.status}</span></td>
-                <td><button onclick="window.api.remove('tarefas/${id}')" style="background:var(--danger)">X</button></td></tr>`;
-        }
-    }
-
-    function renderizarSolicitacoes(sols) {
-        const lista = document.getElementById('lista-solicitacoes');
-        lista.innerHTML = "";
-        for(let id in sols) {
-            const s = sols[id];
-            lista.innerHTML += `<tr><td>${s.cliente}</td><td>${s.titulo}</td><td>${s.venc}</td>
-                <td><span class="badge" style="background:var(--primary)">${s.status}</span></td>
-                <td><button onclick="window.api.update('solicitacoes/${id}', {status:'Recebido'})">Aceitar</button></td></tr>`;
-        }
-    }
-
-    function renderizarUsuarios(users) {
-        const lista = document.getElementById('lista-usuarios');
-        lista.innerHTML = "";
-        for(let id in users) {
-            const u = users[id];
-            const nomeExibicao = u.flegue === 'CLIENTE' ? u.apelido : u.nome;
-            const extra = u.flegue === 'CLIENTE' ? 'CLIENTE' : `${u.classificacao} / ${u.setor}`;
-            
-            lista.innerHTML += `<tr>
-                <td>${u.flegue}</td>
-                <td>${nomeExibicao}</td>
-                <td>${u.email}</td>
-                <td>${extra}</td>
-                <td><button onclick="window.api.remove('usuarios/${id}')" style="background:var(--danger)">Excluir</button></td>
-            </tr>`;
-        }
-    }
-
-    function renderizarCapacidade(tarefas) {
-        const lista = document.getElementById('lista-capacidade');
-        lista.innerHTML = "";
-        const cons = {};
-        for(let id in tarefas) {
-            const t = tarefas[id];
-            const key = `${t.resp}|${t.data}`;
-            cons[key] = (cons[key] || 0) + parseFloat(t.horas);
-        }
-        for(let k in cons) {
-            const [n, d] = k.split('|');
-            const h = cons[k];
-            lista.innerHTML += `<tr><td>${n}</td><td>${d}</td><td>${h}h</td>
-                <td><b style="color:${h>=8?'red':'green'}">${h>=8?'LOTADO':'OK'}</b></td></tr>`;
-        }
-    }
-
-    function salvarUsuario() {
-        const tipo = document.getElementById('nu-flegue').value;
-        let data = { flegue: tipo };
-
-        if(tipo === 'INTERNO') {
-            data.nome = document.getElementById('nu-nome-int').value;
-            data.email = document.getElementById('nu-email-int').value;
-            data.senha = document.getElementById('nu-senha-int').value;
-            data.classificacao = document.getElementById('nu-classificacao').value;
-            data.setor = document.getElementById('nu-setor').value;
-        } else {
-            data.razao = document.getElementById('nu-razao').value;
-            data.apelido = document.getElementById('nu-apelido').value;
-            data.cnpj = document.getElementById('nu-cnpj').value;
-            data.endereco = document.getElementById('nu-endereco').value;
-            data.telefone = document.getElementById('nu-telefone').value;
-            data.nome = document.getElementById('nu-nome-cli').value;
-            data.email = document.getElementById('nu-email-cli').value;
-            data.senha = document.getElementById('nu-senha-cli').value;
-        }
-
-        window.api.save('usuarios/', data);
-        alert("Salvo!");
-    }
-
-    function salvarTarefa() {
+    function processarTarefa() {
+        const id = document.getElementById('t-id').value;
+        const rec = document.getElementById('t-recorrencia').value;
         const t = {
             nome: document.getElementById('t-nome').value,
             data: document.getElementById('t-data').value,
@@ -360,19 +234,105 @@
             resp: document.getElementById('t-resp').value,
             status: 'Pendente'
         };
-        window.api.save('tarefas/', t);
+
+        if(id) {
+            window.api.update(`tarefas/${id}`, t);
+            limparFormTarefa();
+        } else {
+            const datas = gerarDatas(t.data, rec);
+            datas.forEach(d => window.api.save('tarefas/', {...t, data: d}));
+            limparFormTarefa();
+        }
     }
 
-    function salvarSolicitacao() {
-        const s = {
-            topico: document.getElementById('s-topico').value,
-            titulo: document.getElementById('s-titulo').value,
-            venc: document.getElementById('s-venc').value,
-            cliente: document.getElementById('s-cliente').value,
-            desc: document.getElementById('s-desc').value,
-            status: 'Solicitado'
+    function gerarDatas(inicio, tipo) {
+        let datas = [inicio];
+        let d = new Date(inicio + "T00:00:00");
+        const config = { diaria: [29, 1], semanal: [7, 7], quinzenal: [3, 14] };
+        if(config[tipo]) {
+            for(let i=0; i < config[tipo][0]; i++) {
+                d.setDate(d.getDate() + config[tipo][1]);
+                datas.push(d.toISOString().split('T')[0]);
+            }
+        }
+        return datas;
+    }
+
+    function prepararEdicao(id) {
+        if(userLogado.tipo !== 'ADM' && userLogado.tipo !== 'GERENTE') {
+            return alert("Apenas Administradores ou Gerentes podem editar tarefas.");
+        }
+        const t = window.dadosGlobais.tarefas[id];
+        document.getElementById('t-id').value = id;
+        document.getElementById('t-nome').value = t.nome;
+        document.getElementById('t-data').value = t.data;
+        document.getElementById('t-horas').value = t.horas;
+        document.getElementById('t-cliente').value = t.cliente;
+        document.getElementById('t-resp').value = t.resp;
+        document.getElementById('titulo-form').innerText = "Editando Atividade";
+        document.getElementById('btn-cancelar').classList.remove('hidden');
+    }
+
+    function limparFormTarefa() {
+        document.getElementById('t-id').value = "";
+        document.getElementById('t-nome').value = "";
+        document.getElementById('titulo-form').innerText = "Programar Atividade";
+        document.getElementById('btn-cancelar').classList.add('hidden');
+    }
+
+    function renderizarApp() {
+        const d = window.dadosGlobais;
+        const lT = document.getElementById('lista-tarefas');
+        const lC = document.getElementById('lista-concluidas');
+        const lU = document.getElementById('lista-usuarios');
+        const sC = document.getElementById('t-cliente');
+        const sR = document.getElementById('t-resp');
+        
+        lT.innerHTML = ""; lC.innerHTML = ""; lU.innerHTML = ""; sC.innerHTML = ""; sR.innerHTML = "";
+        const hoje = new Date().toISOString().split('T')[0];
+
+        for(let id in d.usuarios) {
+            const u = d.usuarios[id];
+            const nome = u.flegue === 'CLIENTE' ? u.apelido : u.nome;
+            if(u.flegue === 'CLIENTE') sC.innerHTML += `<option>${nome}</option>`;
+            else sR.innerHTML += `<option>${nome}</option>`;
+            lU.innerHTML += `<tr><td>${u.flegue}</td><td>${nome}</td><td>${u.email}</td><td><button onclick="window.api.remove('usuarios/${id}')">Excluir</button></td></tr>`;
+        }
+
+        for(let id in d.tarefas) {
+            const t = d.tarefas[id];
+            let st = t.status;
+            if(st !== 'Concluido' && t.data < hoje) st = 'Atrasada';
+
+            const row = `<td>${formatarDataBR(t.data)}</td><td>${t.cliente}</td><td>${t.nome}</td><td>${t.resp}</td><td><span class="badge status-${st.toLowerCase()}">${st}</span></td>`;
+            
+            if(t.status === 'Concluido') {
+                lC.innerHTML += `<tr>${row}</tr>`;
+            } else {
+                lT.innerHTML += `<tr>${row}<td>
+                    <button onclick="prepararEdicao('${id}')" style="background:#007bff; padding:3px 7px">✎</button>
+                    <select onchange="window.api.update('tarefas/${id}', {status:this.value})" style="width:80px">
+                        <option value="">Status</option>
+                        <option value="Concluido">Concluido</option>
+                        <option value="Problema">Problema</option>
+                        <option value="Pendente">Pendente</option>
+                    </select>
+                </td></tr>`;
+            }
+        }
+    }
+
+    function salvarUsuario() {
+        const f = document.getElementById('nu-flegue').value;
+        const u = f === 'INTERNO' ? {
+            flegue: f, nome: document.getElementById('nu-nome-int').value, email: document.getElementById('nu-email-int').value, 
+            senha: document.getElementById('nu-senha-int').value, tipo: document.getElementById('nu-classificacao').value
+        } : {
+            flegue: f, apelido: document.getElementById('nu-apelido').value, email: document.getElementById('nu-email-cli').value, 
+            senha: document.getElementById('nu-senha-cli').value, tipo: 'CLIENTE'
         };
-        window.api.save('solicitacoes/', s);
+        window.api.save('usuarios/', u);
+        alert("Cadastrado!");
     }
 </script>
 </body>
