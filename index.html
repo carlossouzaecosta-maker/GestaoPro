@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Pro V12 - ERP Cloud</title>
+    <title>Gestão Pro - ERP Cloud</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -72,11 +72,12 @@
         <input type="email" id="l-email" placeholder="E-mail">
         <input type="password" id="l-senha" placeholder="Senha">
         <button onclick="tentarLogin()">Entrar</button>
+        <p id="msg-erro" style="color:red; font-size:12px; margin-top:10px;"></p>
     </div>
 </div>
 
 <div class="sidebar">
-    <h2>Gestão Pro V12</h2>
+    <h2>Gestão Pro</h2>
     <div class="nav-link active" onclick="nav('mod-tarefas')">🕒 Controle de Tarefas</div>
     <div class="nav-link" onclick="nav('mod-concluidas')">✅ Atividades Concluídas</div>
     <div class="nav-link" onclick="nav('mod-solicitacoes')">📄 Solicitações (Portal)</div>
@@ -90,7 +91,7 @@
     
     <div id="mod-tarefas" class="module-card active">
         <div class="card">
-            <h3 id="titulo-form">Programar Atividade</h3>
+            <h3 id="titulo-form-tarefa">Programar Atividade</h3>
             <div class="grid-forms">
                 <input type="hidden" id="t-id">
                 <div><label>Tarefa</label><input type="text" id="t-nome"></div>
@@ -103,26 +104,24 @@
                         <option value="quinzenal">Quinzenal (4 ocorrências)</option>
                     </select>
                 </div>
-                <div><label>Horas</label><input type="number" id="t-horas"></div>
+                <div><label>Horas</label><input type="number" id="t-horas" step="0.5"></div>
                 <div><label>Cliente</label><select id="t-cliente"></select></div>
                 <div><label>Responsável</label><select id="t-resp"></select></div>
             </div>
             <div style="display:flex; gap:10px; margin-top:15px;">
-                <button id="btn-salvar" onclick="processarTarefa()" style="width:200px">Salvar</button>
-                <button id="btn-cancelar" onclick="limparFormTarefa()" class="hidden" style="background:#666; width:150px">Cancelar Edição</button>
+                <button id="btn-salvar-tarefa" onclick="processarTarefa()" style="width:200px">Salvar</button>
+                <button id="btn-cancelar-edit" onclick="limparFormTarefa()" class="hidden" style="background:#666; width:150px">Cancelar</button>
             </div>
         </div>
-
         <div class="card">
-            <h3>Monitoramento</h3>
             <div class="grid-forms" style="margin-bottom:15px;">
-                <input type="text" placeholder="Filtrar Prazo..." onkeyup="filtrar(0, this.value)">
-                <input type="text" placeholder="Filtrar Cliente..." onkeyup="filtrar(1, this.value)">
-                <input type="text" placeholder="Filtrar Tarefa..." onkeyup="filtrar(2, this.value)">
-                <input type="text" placeholder="Filtrar Resp..." onkeyup="filtrar(3, this.value)">
+                <input type="text" placeholder="Filtrar Prazo..." onkeyup="filtrarTabela(0, this.value)">
+                <input type="text" placeholder="Filtrar Cliente..." onkeyup="filtrarTabela(1, this.value)">
+                <input type="text" placeholder="Filtrar Tarefa..." onkeyup="filtrarTabela(2, this.value)">
+                <input type="text" placeholder="Filtrar Responsável..." onkeyup="filtrarTabela(3, this.value)">
             </div>
             <table>
-                <thead><tr><th>Prazo</th><th>Cliente</th><th>Tarefa</th><th>Responsável</th><th>Status</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Prazo</th><th>Cliente</th><th>Tarefa</th><th>Responsável</th><th>Horas</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="lista-tarefas"></tbody>
             </table>
         </div>
@@ -130,10 +129,40 @@
 
     <div id="mod-concluidas" class="module-card">
         <div class="card">
-            <h3>Histórico de Entregas Concluídas</h3>
+            <h3>Atividades Concluídas</h3>
             <table>
-                <thead><tr><th>Data</th><th>Cliente</th><th>Tarefa</th><th>Responsável</th><th>Status</th></tr></thead>
+                <thead><tr><th>Data</th><th>Cliente</th><th>Tarefa</th><th>Responsável</th><th>Horas</th><th>Status</th></tr></thead>
                 <tbody id="lista-concluidas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="mod-solicitacoes" class="module-card">
+        <div class="card">
+            <h3>Nova Solicitação</h3>
+            <div class="grid-forms">
+                <input type="text" id="s-topico" placeholder="Tópico">
+                <input type="text" id="s-titulo" placeholder="Título">
+                <input type="date" id="s-venc">
+                <select id="s-cliente"></select>
+            </div>
+            <textarea id="s-desc" placeholder="Descrição" style="margin-top:10px;"></textarea>
+            <button onclick="salvarSolicitacao()" style="width:200px; margin-top:10px;">Enviar</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead><tr><th>Cliente</th><th>Título</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="lista-solicitacoes"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="mod-capacidade" class="module-card">
+        <div class="card">
+            <h3>Disponibilidade (8h Diárias)</h3>
+            <table>
+                <thead><tr><th>Nome</th><th>Data</th><th>Horas</th><th>Status</th></tr></thead>
+                <tbody id="lista-capacidade"></tbody>
             </table>
         </div>
     </div>
@@ -143,34 +172,47 @@
             <h3>Gestão de Usuários</h3>
             <div style="margin-bottom: 15px;">
                 <label>Tipo de Cadastro:</label>
-                <select id="nu-flegue" onchange="toggleForm()">
+                <select id="nu-flegue" onchange="toggleCamposCadastro()">
                     <option value="INTERNO">Equipe Interna</option>
                     <option value="CLIENTE">Cliente</option>
                 </select>
             </div>
             <div id="campos-interno" class="grid-forms">
-                <input type="text" id="nu-nome-int" placeholder="Nome">
-                <input type="email" id="nu-email-int" placeholder="E-mail">
-                <input type="password" id="nu-senha-int" placeholder="Senha">
-                <select id="nu-classificacao"><option value="ADM">ADM</option><option value="GERENTE">Gerente</option><option value="LIDER">Líder</option><option value="EQUIPE">Equipe</option></select>
+                <div><label>Nome</label><input type="text" id="nu-nome-int"></div>
+                <div><label>E-mail</label><input type="email" id="nu-email-int"></div>
+                <div><label>Senha</label><input type="password" id="nu-senha-int"></div>
+                <div><label>Classificação</label>
+                    <select id="nu-classificacao">
+                        <option value="ADM">ADM</option><option value="GERENTE">Gerente</option>
+                        <option value="LIDER">Líder</option><option value="EQUIPE">Equipe</option>
+                    </select>
+                </div>
+                <div><label>Setor</label>
+                    <select id="nu-setor">
+                        <option>Gestão de ativos</option><option>Serviços Corporativos</option>
+                        <option>Projeto de Capital</option><option>Administrativo</option>
+                        <option>Recursos Humanos</option><option>Marketing</option><option>Qualidade</option>
+                    </select>
+                </div>
             </div>
             <div id="campos-cliente" class="grid-forms hidden">
-                <input type="text" id="nu-razao" placeholder="Razão Social">
-                <input type="text" id="nu-apelido" placeholder="Apelido">
-                <input type="text" id="nu-email-cli" placeholder="E-mail Acesso">
-                <input type="password" id="nu-senha-cli" placeholder="Senha">
+                <div><label>Razão Social</label><input type="text" id="nu-razao"></div>
+                <div><label>Apelido</label><input type="text" id="nu-apelido"></div>
+                <div><label>CNPJ</label><input type="text" id="nu-cnpj"></div>
+                <div><label>Endereço</label><input type="text" id="nu-endereco"></div>
+                <div><label>Pessoa Contato</label><input type="text" id="nu-nome-cli"></div>
+                <div><label>E-mail Acesso</label><input type="email" id="nu-email-cli"></div>
+                <div><label>Senha</label><input type="password" id="nu-senha-cli"></div>
             </div>
             <button onclick="salvarUsuario()" style="margin-top:15px; width:200px">Salvar Cadastro</button>
         </div>
         <div class="card">
-            <table><thead><tr><th>Tipo</th><th>Nome</th><th>E-mail</th><th>Ação</th></tr></thead><tbody id="lista-usuarios"></tbody></table>
+            <table><thead><tr><th>Tipo</th><th>Nome</th><th>E-mail</th><th>Detalhes</th><th>Ações</th></tr></thead>
+            <tbody id="lista-usuarios"></tbody></table>
         </div>
     </div>
 
-    <div id="mod-solicitacoes" class="module-card"><div class="card"><h3>Em Breve</h3></div></div>
-    <div id="mod-dashboard" class="module-card"><div class="card"><h3>Em Breve</h3></div></div>
-    <div id="mod-capacidade" class="module-card"><div class="card"><h3>Em Breve</h3></div></div>
-
+    <div id="mod-dashboard" class="module-card"><div class="card"><h3>Dashboard em Desenvolvimento</h3></div></div>
 </div>
 
 <script>
@@ -183,7 +225,7 @@
         event.currentTarget.classList.add('active');
     }
 
-    function toggleForm() {
+    function toggleCamposCadastro() {
         const tipo = document.getElementById('nu-flegue').value;
         document.getElementById('campos-interno').classList.toggle('hidden', tipo !== 'INTERNO');
         document.getElementById('campos-cliente').classList.toggle('hidden', tipo !== 'CLIENTE');
@@ -193,7 +235,7 @@
         const e = document.getElementById('l-email').value;
         const s = document.getElementById('l-senha').value;
         if(e === "admin@admin.com" && s === "admin123") {
-            userLogado = { nome: "Admin", tipo: "ADM" };
+            userLogado = { nome: "Admin", classificacao: "ADM" };
             document.getElementById('tela-login').style.display = 'none';
             return;
         }
@@ -205,17 +247,16 @@
                 return;
             }
         }
-        alert("Acesso Negado.");
+        document.getElementById('msg-erro').innerText = "Acesso Negado.";
     }
 
-    // UTILITÁRIOS
-    function formatarDataBR(data) {
-        if(!data) return "";
-        const [a, m, d] = data.split('-');
+    function formatarDataBR(ds) {
+        if(!ds) return "";
+        const [a, m, d] = ds.split('-');
         return `${d}/${m}/${a}`;
     }
 
-    function filtrar(col, val) {
+    function filtrarTabela(col, val) {
         const rows = document.getElementById('lista-tarefas').rows;
         for (let r of rows) {
             const txt = r.cells[col].innerText.toLowerCase();
@@ -223,45 +264,44 @@
         }
     }
 
+    // LÓGICA DE TAREFAS (COM RECORRÊNCIA E EDIÇÃO)
     function processarTarefa() {
         const id = document.getElementById('t-id').value;
         const rec = document.getElementById('t-recorrencia').value;
-        const t = {
+        const base = {
             nome: document.getElementById('t-nome').value,
             data: document.getElementById('t-data').value,
-            horas: document.getElementById('t-horas').value,
+            horas: document.getElementById('t-horas').value || 0,
             cliente: document.getElementById('t-cliente').value,
             resp: document.getElementById('t-resp').value,
             status: 'Pendente'
         };
 
         if(id) {
-            window.api.update(`tarefas/${id}`, t);
+            window.api.update(`tarefas/${id}`, base);
             limparFormTarefa();
         } else {
-            const datas = gerarDatas(t.data, rec);
-            datas.forEach(d => window.api.save('tarefas/', {...t, data: d}));
+            const datas = gerarDatas(base.data, rec);
+            datas.forEach(d => window.api.save('tarefas/', {...base, data: d}));
             limparFormTarefa();
         }
     }
 
     function gerarDatas(inicio, tipo) {
         let datas = [inicio];
+        if(tipo === 'nenhuma') return datas;
         let d = new Date(inicio + "T00:00:00");
         const config = { diaria: [29, 1], semanal: [7, 7], quinzenal: [3, 14] };
-        if(config[tipo]) {
-            for(let i=0; i < config[tipo][0]; i++) {
-                d.setDate(d.getDate() + config[tipo][1]);
-                datas.push(d.toISOString().split('T')[0]);
-            }
+        for(let i=0; i < config[tipo][0]; i++) {
+            d.setDate(d.getDate() + config[tipo][1]);
+            datas.push(d.toISOString().split('T')[0]);
         }
         return datas;
     }
 
     function prepararEdicao(id) {
-        if(userLogado.tipo !== 'ADM' && userLogado.tipo !== 'GERENTE') {
-            return alert("Apenas Administradores ou Gerentes podem editar tarefas.");
-        }
+        const u = userLogado.classificacao || userLogado.tipo;
+        if(u !== 'ADM' && u !== 'GERENTE') return alert("Apenas Administradores ou Gerentes podem editar.");
         const t = window.dadosGlobais.tarefas[id];
         document.getElementById('t-id').value = id;
         document.getElementById('t-nome').value = t.nome;
@@ -269,70 +309,94 @@
         document.getElementById('t-horas').value = t.horas;
         document.getElementById('t-cliente').value = t.cliente;
         document.getElementById('t-resp').value = t.resp;
-        document.getElementById('titulo-form').innerText = "Editando Atividade";
-        document.getElementById('btn-cancelar').classList.remove('hidden');
+        document.getElementById('titulo-form-tarefa').innerText = "Editando Atividade";
+        document.getElementById('btn-cancelar-edit').classList.remove('hidden');
     }
 
     function limparFormTarefa() {
         document.getElementById('t-id').value = "";
         document.getElementById('t-nome').value = "";
-        document.getElementById('titulo-form').innerText = "Programar Atividade";
-        document.getElementById('btn-cancelar').classList.add('hidden');
+        document.getElementById('titulo-form-tarefa').innerText = "Programar Atividade";
+        document.getElementById('btn-cancelar-edit').classList.add('hidden');
     }
 
     function renderizarApp() {
         const d = window.dadosGlobais;
         const lT = document.getElementById('lista-tarefas');
         const lC = document.getElementById('lista-concluidas');
+        const lS = document.getElementById('lista-solicitacoes');
         const lU = document.getElementById('lista-usuarios');
-        const sC = document.getElementById('t-cliente');
+        const lCap = document.getElementById('lista-capacidade');
+        const sC = document.querySelectorAll('#t-cliente, #s-cliente');
         const sR = document.getElementById('t-resp');
         
-        lT.innerHTML = ""; lC.innerHTML = ""; lU.innerHTML = ""; sC.innerHTML = ""; sR.innerHTML = "";
+        lT.innerHTML = ""; lC.innerHTML = ""; lS.innerHTML = ""; lU.innerHTML = ""; lCap.innerHTML = "";
+        sC.forEach(s => s.innerHTML = '<option value="">Selecionar...</option>');
+        sR.innerHTML = '<option value="">Responsável...</option>';
+
         const hoje = new Date().toISOString().split('T')[0];
 
+        // 1. USUÁRIOS
         for(let id in d.usuarios) {
             const u = d.usuarios[id];
             const nome = u.flegue === 'CLIENTE' ? u.apelido : u.nome;
-            if(u.flegue === 'CLIENTE') sC.innerHTML += `<option>${nome}</option>`;
-            else sR.innerHTML += `<option>${nome}</option>`;
-            lU.innerHTML += `<tr><td>${u.flegue}</td><td>${nome}</td><td>${u.email}</td><td><button onclick="window.api.remove('usuarios/${id}')">Excluir</button></td></tr>`;
+            if(u.flegue === 'CLIENTE') sC.forEach(s => s.innerHTML += `<option value="${nome}">${nome}</option>`);
+            else sR.innerHTML += `<option value="${nome}">${nome}</option>`;
+            lU.innerHTML += `<tr><td>${u.flegue}</td><td>${nome}</td><td>${u.email}</td><td>${u.setor || 'CLIENTE'}</td><td><button onclick="window.api.remove('usuarios/${id}')">X</button></td></tr>`;
         }
 
+        // 2. TAREFAS
+        const capMap = {};
         for(let id in d.tarefas) {
             const t = d.tarefas[id];
             let st = t.status;
             if(st !== 'Concluido' && t.data < hoje) st = 'Atrasada';
 
-            const row = `<td>${formatarDataBR(t.data)}</td><td>${t.cliente}</td><td>${t.nome}</td><td>${t.resp}</td><td><span class="badge status-${st.toLowerCase()}">${st}</span></td>`;
+            // Mapa de Capacidade
+            const capKey = `${t.resp}|${t.data}`;
+            capMap[capKey] = (capMap[capKey] || 0) + parseFloat(t.horas || 0);
+
+            const row = `<td>${formatarDataBR(t.data)}</td><td>${t.cliente}</td><td>${t.nome}</td><td>${t.resp}</td><td>${t.horas}h</td><td><span class="badge status-${st.toLowerCase()}">${st}</span></td>`;
             
-            if(t.status === 'Concluido') {
-                lC.innerHTML += `<tr>${row}</tr>`;
-            } else {
-                lT.innerHTML += `<tr>${row}<td>
-                    <button onclick="prepararEdicao('${id}')" style="background:#007bff; padding:3px 7px">✎</button>
-                    <select onchange="window.api.update('tarefas/${id}', {status:this.value})" style="width:80px">
-                        <option value="">Status</option>
-                        <option value="Concluido">Concluido</option>
-                        <option value="Problema">Problema</option>
-                        <option value="Pendente">Pendente</option>
-                    </select>
-                </td></tr>`;
-            }
+            if(t.status === 'Concluido') lC.innerHTML += `<tr>${row}</tr>`;
+            else lT.innerHTML += `<tr>${row}<td><button onclick="prepararEdicao('${id}')">✎</button><select onchange="window.api.update('tarefas/${id}', {status:this.value})"><option value="">Alt</option><option value="Concluido">Concluido</option><option value="Problema">Problema</option></select></td></tr>`;
+        }
+
+        // 3. CAPACIDADE
+        for(let k in capMap) {
+            const [n, dt] = k.split('|');
+            const h = capMap[k];
+            lCap.innerHTML += `<tr><td>${n}</td><td>${formatarDataBR(dt)}</td><td>${h}h</td><td><b style="color:${h>=8?'red':'green'}">${h>=8?'LOTADO':'OK'}</b></td></tr>`;
+        }
+
+        // 4. SOLICITAÇÕES
+        for(let id in d.solicitacoes) {
+            const s = d.solicitacoes[id];
+            lS.innerHTML += `<tr><td>${s.cliente}</td><td>${s.titulo}</td><td>${formatarDataBR(s.venc)}</td><td>${s.status}</td><td><button onclick="window.api.update('solicitacoes/${id}', {status:'Recebido'})">Aceitar</button></td></tr>`;
         }
     }
 
     function salvarUsuario() {
         const f = document.getElementById('nu-flegue').value;
-        const u = f === 'INTERNO' ? {
+        const data = f === 'INTERNO' ? {
             flegue: f, nome: document.getElementById('nu-nome-int').value, email: document.getElementById('nu-email-int').value, 
-            senha: document.getElementById('nu-senha-int').value, tipo: document.getElementById('nu-classificacao').value
+            senha: document.getElementById('nu-senha-int').value, classificacao: document.getElementById('nu-classificacao').value, setor: document.getElementById('nu-setor').value
         } : {
-            flegue: f, apelido: document.getElementById('nu-apelido').value, email: document.getElementById('nu-email-cli').value, 
-            senha: document.getElementById('nu-senha-cli').value, tipo: 'CLIENTE'
+            flegue: f, razao: document.getElementById('nu-razao').value, apelido: document.getElementById('nu-apelido').value,
+            cnpj: document.getElementById('nu-cnpj').value, email: document.getElementById('nu-email-cli').value, senha: document.getElementById('nu-senha-cli').value
         };
-        window.api.save('usuarios/', u);
-        alert("Cadastrado!");
+        window.api.save('usuarios/', data);
+        alert("Cadastro Salvo!");
+    }
+
+    function salvarSolicitacao() {
+        const s = { 
+            topico: document.getElementById('s-topico').value, titulo: document.getElementById('s-titulo').value,
+            venc: document.getElementById('s-venc').value, cliente: document.getElementById('s-cliente').value,
+            desc: document.getElementById('s-desc').value, status: 'Solicitado'
+        };
+        window.api.save('solicitacoes/', s);
+        alert("Solicitação Enviada!");
     }
 </script>
 </body>
